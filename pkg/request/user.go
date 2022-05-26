@@ -17,3 +17,8 @@ type HandleUserActivityRequest struct {
 	Action    string    `json:"action"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+type GetListUserWallet struct {
+	GuildID   string `json:"guild_id"`
+	ChainType string `json:"chain_type"`
+}

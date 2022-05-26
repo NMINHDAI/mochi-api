@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/defipod/mochi/pkg/model"
-	"github.com/defipod/mochi/pkg/util"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/defipod/mochi/pkg/model"
+	"github.com/defipod/mochi/pkg/request"
+	"github.com/defipod/mochi/pkg/util"
 )
 
 type pg struct {
@@ -50,4 +52,20 @@ func (pg *pg) UpsertOne(uw model.UserWallet) error {
 	}
 
 	return tx.Commit().Error
+}
+
+func (pg *pg) GetList(req request.GetListUserWallet) ([]model.UserWallet, error) {
+	var uws []model.UserWallet
+
+	q := pg.db
+
+	if req.GuildID != "" {
+		q = q.Where("guild_id = ?", req.GuildID)
+	}
+
+	if req.ChainType != "" {
+		q = q.Where("chain_type = ?", req.ChainType)
+	}
+
+	return uws, q.Find(&uws).Error
 }

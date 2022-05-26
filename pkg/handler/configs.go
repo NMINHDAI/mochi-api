@@ -133,3 +133,98 @@ func (h *Handler) GetLevelRoleConfigs(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
+
+func (h *Handler) ListGuildNFTConfigs(c *gin.Context) {
+	guildID := c.Query("guild_id")
+	if guildID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "guild_id is required"})
+		return
+	}
+
+	configs, err := h.entities.ListGuildNFTConfigs(guildID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": configs})
+}
+
+func (h *Handler) ListGuildHolderRoles(c *gin.Context) {
+	guildID := c.Query("guild_id")
+	if guildID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "guild_id is required"})
+		return
+	}
+
+	roles, err := h.entities.ListGuildHolderRoles(guildID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": roles})
+}
+
+func (h *Handler) NewGuildHolderRole(c *gin.Context) {
+	var req request.ConfigHolderRoleRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	newRole, err := h.entities.NewGuildHolderRoleConfig(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "OK", "data": newRole})
+}
+
+func (h *Handler) EditGuildHolderRole(c *gin.Context) {
+
+	var req request.ConfigHolderRoleRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	req.ID = c.Param("config_id")
+	if req.ID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "config_id is required"})
+		return
+	}
+
+	if err := h.entities.EditGuildHolderRoleConfig(req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "OK"})
+}
+
+func (h *Handler) RemoveGuildHolderRole(c *gin.Context) {
+	configID := c.Param("config_id")
+	if configID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "config_id is required"})
+		return
+	}
+
+	if err := h.entities.RemoveGuildHolderRoleConfig(configID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "OK"})
+}

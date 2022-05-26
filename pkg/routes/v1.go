@@ -99,6 +99,14 @@ func NewRoutes(r *gin.Engine, h *handler.Handler, cfg config.Config) {
 			levelRoleGroup.POST("", h.ConfigLevelRole)
 			levelRoleGroup.GET("/:guild_id", h.GetLevelRoleConfigs)
 		}
+		holderRoleGroup := configGroup.Group("/holder-roles")
+		{
+			holderRoleGroup.GET("/nfts", h.ListGuildNFTConfigs)
+			holderRoleGroup.GET("", h.ListGuildHolderRoles)
+			holderRoleGroup.POST("", h.NewGuildHolderRole)
+			holderRoleGroup.PUT("/:config_id", h.EditGuildHolderRole)
+			holderRoleGroup.DELETE("/:config_id", h.RemoveGuildHolderRole)
+		}
 	}
 
 	defiGroup := v1.Group("/defi")

@@ -12,8 +12,10 @@ import (
 	guildconfigactivity "github.com/defipod/mochi/pkg/repo/guild_config_activity"
 	guildconfigdefaultrole "github.com/defipod/mochi/pkg/repo/guild_config_default_roles"
 	guildconfiggmgn "github.com/defipod/mochi/pkg/repo/guild_config_gm_gn"
+	guildconfigholderrole "github.com/defipod/mochi/pkg/repo/guild_config_holder_role"
 	guildconfiginvitetracker "github.com/defipod/mochi/pkg/repo/guild_config_invite_tracker"
 	guildconfiglevelrole "github.com/defipod/mochi/pkg/repo/guild_config_level_role"
+	guildconfignft "github.com/defipod/mochi/pkg/repo/guild_config_nft"
 	guildconfigreactionrole "github.com/defipod/mochi/pkg/repo/guild_config_reaction_roles"
 	guildconfigtoken "github.com/defipod/mochi/pkg/repo/guild_config_token"
 	guildconfigwalletverificationmessage "github.com/defipod/mochi/pkg/repo/guild_config_wallet_verification_message"
@@ -58,4 +60,6 @@ type Repo struct {
 	GuildUserActivityLog                 guilduseractivitylog.Store
 	GuildUserXP                          guilduserxp.Store
 	GuildConfigLevelRole                 guildconfiglevelrole.Store
+	GuildConfigHolderRole                guildconfigholderrole.Store
+	GuildConfigNFT                       guildconfignft.Store
 }

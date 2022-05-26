@@ -2,12 +2,17 @@ package entities
 
 import (
 	"fmt"
+	"math/big"
 	"net/http"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/defipod/mochi/pkg/contracts/erc1155"
+	"github.com/defipod/mochi/pkg/contracts/erc721"
 	"github.com/defipod/mochi/pkg/model"
 	"github.com/defipod/mochi/pkg/request"
 	"github.com/defipod/mochi/pkg/response"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"gorm.io/gorm"
 )
 
@@ -213,4 +218,94 @@ func (e *Entity) GetUserProfile(guildID, userID string) (*response.GetUserProfil
 		GuildXP:      gUserXP.TotalXP,
 		NrOfActions:  gUserXP.NrOfActions,
 	}, nil
+}
+
+func (e *Entity) GetGuildMemberWallet(guildID string) ([]model.UserWallet, error) {
+	uws, err := e.repo.UserWallet.GetList(request.GetListUserWallet{
+		GuildID:   guildID,
+		ChainType: "evm",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user wallet: %v", err.Error())
+	}
+	return uws, nil
+}
+
+func (e *Entity) ListGuildMemberHolderRole(config model.GuildConfigNFT) (map[string]string, error) {
+
+	var rpcUrl string
+	switch config.ChainID {
+	case 1:
+		rpcUrl = e.cfg.EthereumRPC
+	case 56:
+		rpcUrl = e.cfg.BscRPC
+	case 250:
+		rpcUrl = e.cfg.FantomRPC
+	default:
+		return nil, fmt.Errorf("chain id %d not supported", config.ChainID)
+	}
+
+	client, err := ethclient.Dial(rpcUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to chain client: %v", err.Error())
+	}
+
+	var balanceOf func(string) (int, error)
+	switch config.ERCFormat {
+	case 721:
+		contract721, err := erc721.NewErc721(common.HexToAddress(config.TokenAddress), client)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init erc721 contract: %v", err.Error())
+		}
+
+		balanceOf = func(address string) (int, error) {
+			b, err := contract721.BalanceOf(nil, common.HexToAddress(address))
+			if err != nil {
+				return 0, fmt.Errorf("failed to get balance of %s in chain %d: %v", address, config.ChainID, err.Error())
+			}
+			return int(b.Int64()), nil
+		}
+
+	case 1155:
+		contract1155, err := erc1155.NewErc1155(common.HexToAddress(config.TokenAddress), client)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init erc1155 contract: %v", err.Error())
+		}
+
+		balanceOf = func(address string) (int, error) {
+			b, err := contract1155.BalanceOf(nil, common.HexToAddress(address), big.NewInt(int64(config.TokenID)))
+			if err != nil {
+				return 0, fmt.Errorf("failed to get balance of %s in chain %d: %v", address, config.ChainID, err.Error())
+			}
+			return int(b.Int64()), nil
+		}
+
+	default:
+		return nil, fmt.Errorf("erc format %d not supported", config.ERCFormat)
+	}
+
+	uws, err := e.repo.UserWallet.GetList(request.GetListUserWallet{
+		GuildID:   config.GuildID,
+		ChainType: "evm",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user wallet: %v", err.Error())
+	}
+
+	res := make(map[string]string)
+	for _, uw := range uws {
+		n, err := balanceOf(uw.Address)
+		if err != nil {
+			return nil, err
+		}
+
+		role, err := e.repo.GuildConfigHolderRole.GetCurrentRole(config.ID, n)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current role: %v", err.Error())
+		}
+
+		res[uw.UserDiscordID] = role.RoleID
+	}
+
+	return res, nil
 }
